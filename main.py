@@ -2,10 +2,6 @@ from ucimlrepo import fetch_ucirepo
 import numpy as np
 import pandas as pd
 
-TRAINING_SAMPLES = 538
-VALIDATION_SAMPLES = 76
-TEST_SAMPLES = 154
-
 # Functions to prep data for linear regression and ridge regression learning:
 def decomposeMatrix(data_set):
     y1_df = data_set['Y1']
@@ -17,21 +13,22 @@ def decomposeMatrix(data_set):
 
     return (features, y1_vector, y2_vector)
 
-def addBias(features, sample_size) -> np.ndarray:
-    bias = np.ones((sample_size, 1))
+def addBias(features) -> np.ndarray:
+    bias = np.ones((features.shape[0], 1), dtype=features.dtype)
     final_matrix = np.concatenate([bias, features], axis=1)
     return final_matrix
 
 # Calculation functions
 def predictViaLinReg(bias, weights, features):
-    prediction = bias + (np.sum(weights * features))
+    prediction = bias + np.dot(weights, features)
+    print(prediction)
     return prediction
 
 def calcMeanSqError(bias, weights, features, true_values):
     sq_error = []
     for sample, true_value in zip(features, true_values):
+        print(true_value)
         sq_error.append(np.square(predictViaLinReg(bias, weights, sample) - true_value))
-    
     return np.mean(sq_error)
         
 # Load Dataset
@@ -46,19 +43,17 @@ validation_set = temp_set.sample(frac=0.33, random_state=654168) # Take 33% of t
 test_set = temp_set.drop(validation_set.index) # Create the testing set by dropping the validation set from the temp set
 
 features, y1_vector, y2_vector = decomposeMatrix(training_set)
-a_final_matrix = addBias(features, TRAINING_SAMPLES)
+a_final_matrix = addBias(features)
 
 # Calculations:
 lin_reg_weight_vector_y1 = np.matmul(np.linalg.inv(np.matmul(a_final_matrix.T, a_final_matrix)), np.matmul(a_final_matrix.T, y1_vector))
 lin_reg_weight_vector_y2 = np.matmul(np.linalg.inv(np.matmul(a_final_matrix.T, a_final_matrix)), np.matmul(a_final_matrix.T, y2_vector))
 
-w0_y1 = lin_reg_weight_vector_y1[0]
-w0_y2 = lin_reg_weight_vector_y2[0]
+bias_y1 = lin_reg_weight_vector_y1[0]
+bias_y2 = lin_reg_weight_vector_y2[0]
 weights_y1 = lin_reg_weight_vector_y1[1:]
 weights_y2 = lin_reg_weight_vector_y2[1:]
 
 test_features, test_y1, test_y2 = decomposeMatrix(test_set)
-
-
-
-print(a_final_matrix)
+print(calcMeanSqError(bias_y1, weights_y1, test_features, test_y1))
+print(calcMeanSqError(bias_y2, weights_y2, test_features, test_y2))
