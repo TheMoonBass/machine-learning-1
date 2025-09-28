@@ -28,12 +28,9 @@ def predictViaLinReg(bias, weights, features):
     prediction = bias + (np.sum(weights * features))
     return prediction
 
-def calcMeanSqError(bias, weights, features, true_values):
-    sq_error = []
-    for sample, true_value in zip(features, true_values):
-        sq_error.append(np.square(predictViaLinReg(bias, weights, sample) - true_value))
-    
-    return np.mean(sq_error)
+def calcMeanSqError(weights, features, true_values):
+    predictions = np.matmul(features, weights)
+    return np.mean((predictions - true_values) ** 2)
 
 def trainRidgeRegression(a_matrix, lambda_val, y_vector):
     return np.matmul(np.linalg.pinv(np.matmul(a_matrix.T, a_matrix) + (lambda_val * np.identity(a_matrix.shape[1]))), np.matmul(a_matrix.T, y_vector))
@@ -50,8 +47,8 @@ def optimizeRidgeRegression(training_matrix, training_y1, training_y2, validatio
         ridge_weights_y1 = trainRidgeRegression(training_matrix, current_lambda, training_y1)
         ridge_weights_y2 = trainRidgeRegression(training_matrix, current_lambda, training_y2)
         
-        y1_mse = calcMeanSqError(ridge_weights_y1[0], ridge_weights_y1[1:], validation_features, validation_y1)
-        y2_mse = calcMeanSqError(ridge_weights_y2[0], ridge_weights_y2[1:], validation_features, validation_y2)
+        y1_mse = calcMeanSqError(ridge_weights_y1, validation_features, validation_y1)
+        y2_mse = calcMeanSqError(ridge_weights_y2, validation_features, validation_y2)
         avg_error = (y1_mse + y2_mse ) / 2
         all_avg_error.append(avg_error)
         if avg_error < best_avg_error:
@@ -79,25 +76,22 @@ training_matrix = addBias(training_features, TRAINING_SAMPLES)
 lin_reg_weight_vector_y1 = np.matmul(np.linalg.pinv(np.matmul(training_matrix.T, training_matrix)), np.matmul(training_matrix.T, training_y1))
 lin_reg_weight_vector_y2 = np.matmul(np.linalg.pinv(np.matmul(training_matrix.T, training_matrix)), np.matmul(training_matrix.T, training_y2))
 
-w0_y1 = lin_reg_weight_vector_y1[0]
-w0_y2 = lin_reg_weight_vector_y2[0]
-weights_y1 = lin_reg_weight_vector_y1[1:]
-weights_y2 = lin_reg_weight_vector_y2[1:]
-
 test_features, test_y1, test_y2 = decomposeMatrix(test_set)
+test_matrix = addBias(test_features, TEST_SAMPLES)
 
-print(f'Linear Regression MSE for Y1: {calcMeanSqError(w0_y1, weights_y1, test_features, test_y1)}')
-print(f'Linear Regression MSE for Y2: {calcMeanSqError(w0_y2, weights_y2, test_features, test_y2)}')
+print(f'Linear Regression MSE for Y1: {calcMeanSqError(lin_reg_weight_vector_y1, test_matrix, test_y1)}')
+print(f'Linear Regression MSE for Y2: {calcMeanSqError(lin_reg_weight_vector_y2, test_matrix, test_y2)}')
 
 validation_features, validation_y1, validation_y2 = decomposeMatrix(validation_set)
+validation_matrix = addBias(validation_features, VALIDATION_SAMPLES)
 
-best_lambda, all_lambdas, avg_errors = optimizeRidgeRegression(training_matrix, training_y1, training_y2, validation_features, validation_y1, validation_y2)
-print(avg_errors)
+best_lambda, all_lambdas, avg_errors = optimizeRidgeRegression(training_matrix, training_y1, training_y2, validation_matrix, validation_y1, validation_y2)
+# print(avg_errors)
 
 print(f'Final lambda chosen: {best_lambda}')
 
 final_ridge_weights_y1 = trainRidgeRegression(training_matrix, best_lambda, training_y1)
 final_ridge_weights_y2 = trainRidgeRegression(training_matrix, best_lambda, training_y2)
 
-print(f'Ridge Regression MSE for Y1: {calcMeanSqError(final_ridge_weights_y1[0], final_ridge_weights_y1[1:], test_features, test_y1)}')
-print(f'Ridge Regression MSE for Y1: {calcMeanSqError(final_ridge_weights_y2[0], final_ridge_weights_y2[1:], test_features, test_y2)}')
+print(f'Ridge Regression MSE for Y1: {calcMeanSqError(final_ridge_weights_y1, test_matrix, test_y1)}')
+print(f'Ridge Regression MSE for Y1: {calcMeanSqError(final_ridge_weights_y2, test_matrix, test_y2)}')
