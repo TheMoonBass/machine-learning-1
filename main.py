@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import sklearn
 
 # Based on a 7:1:2 split
 TRAINING_SAMPLES = 538
@@ -95,6 +96,10 @@ final_ridge_weights_y2 = trainRidgeRegression(training_matrix, best_lambda_y2, t
 
 print(f'Ridge Regression MSE for Y1: {calcMeanSqError(final_ridge_weights_y1, test_matrix, test_y1)}')
 print(f'Ridge Regression MSE for Y1: {calcMeanSqError(final_ridge_weights_y2, test_matrix, test_y2)}')
+
+# Scikit-Learn for comparison
+lin_sk_model = sklearn.linear_model.LinearRegression()
+ridge_sk_model = sklearn.linear_model.RidgeCV()
 
 # Graphs and Reporting
 sns.lineplot(x=all_lambdas_y1, y=all_errors_y1, color='blue', label='Y1')
