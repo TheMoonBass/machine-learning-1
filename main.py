@@ -1,6 +1,8 @@
 from ucimlrepo import fetch_ucirepo
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Based on a 7:1:2 split
 TRAINING_SAMPLES = 538
@@ -84,7 +86,6 @@ validation_matrix = addBias(validation_features, VALIDATION_SAMPLES)
 
 best_lambda_y1, all_lambdas_y1, all_errors_y1 = optimizeRidgeRegression(training_matrix, training_y1, validation_matrix, validation_y1)
 best_lambda_y2, all_lambdas_y2, all_errors_y2 = optimizeRidgeRegression(training_matrix, training_y2, validation_matrix, validation_y2)
-# print(avg_errors)
 
 print(f'Final lambda chosen Y1: {best_lambda_y1}')
 print(f'Final chosen lambda Y2: {best_lambda_y2}')
@@ -94,3 +95,11 @@ final_ridge_weights_y2 = trainRidgeRegression(training_matrix, best_lambda_y2, t
 
 print(f'Ridge Regression MSE for Y1: {calcMeanSqError(final_ridge_weights_y1, test_matrix, test_y1)}')
 print(f'Ridge Regression MSE for Y1: {calcMeanSqError(final_ridge_weights_y2, test_matrix, test_y2)}')
+
+# Graphs and Reporting
+sns.lineplot(x=all_lambdas_y1, y=all_errors_y1, color='blue', label='Y1')
+sns.lineplot(x=all_lambdas_y2, y=all_errors_y2, color='red', label='Y2')
+plt.title('Lambdas vs Error for Y1 and Y2')
+plt.xlabel('Lambda')
+plt.ylabel('Mean Squared Error')
+plt.show()

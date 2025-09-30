@@ -1,3 +1,5 @@
 numpy
 ucimlrepo
 pandas
+matplotlib
+seaborn
