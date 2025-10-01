@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import sklearn
 from sklearn.linear_model import LinearRegression, RidgeCV
 
 # Based on a 7:1:2 split
@@ -98,11 +97,21 @@ final_ridge_weights_y2 = trainRidgeRegression(training_matrix, best_lambda_y2, t
 print(f'Ridge Regression MSE for Y1: {calcMeanSqError(final_ridge_weights_y1, test_matrix, test_y1)}')
 print(f'Ridge Regression MSE for Y1: {calcMeanSqError(final_ridge_weights_y2, test_matrix, test_y2)}')
 
-sk_lin_model_y1 = LinearRegression()
-sk_lin_model_y2 = LinearRegression()
+sk_lin_model_y1 = LinearRegression(fit_intercept=False)
+sk_lin_model_y1.fit(training_matrix, training_y1)
+sk_lin_preds_y1 = sk_lin_model_y1.predict(test_matrix)
+sk_lin_model_y2 = LinearRegression(fit_intercept=False)
+sk_lin_model_y2.fit(training_matrix, training_y2)
+sk_lin_preds_y2 = sk_lin_model_y2.predict(test_matrix)
 
-sk_ridge_model_y1 = RidgeCV()
-sk_ridge_model_y2 = RidgeCV()
+lambdas = np.arange(0.0, 10.0 + 0.1, 0.1)
+
+sk_ridge_model_y1 = RidgeCV(alphas=lambdas, store_cv_values=True, fit_intercept=False)
+sk_ridge_model_y1.fit(training_matrix, training_y1)
+sk_ridge_preds_y1 = sk_ridge_model_y1.predict(test_features)
+sk_ridge_model_y2 = RidgeCV(alphas=lambdas, store_cv_values=True, fit_intercept=False)
+sk_ridge_model_y2.fit(training_matrix, training_y2)
+sk_ridge_preds_y2 = sk_ridge_model_y2.predict(test_features)
 
 # Graphs and Reporting
 sns.lineplot(x=all_lambdas_y1, y=all_errors_y1, color='blue', label='Y1')
