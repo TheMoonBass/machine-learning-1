@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.linear_model import LinearRegression, RidgeCV
+from sklearn.linear_model import LinearRegression, Ridge
 
 # Based on a 7:1:2 split
 TRAINING_SAMPLES = 538
@@ -38,7 +38,7 @@ def calcMeanSqError(weights, features, true_values):
 def trainRidgeRegression(a_matrix, lambda_val, y_vector):
     return np.matmul(np.linalg.pinv(np.matmul(a_matrix.T, a_matrix) + (lambda_val * np.identity(a_matrix.shape[1]))), np.matmul(a_matrix.T, y_vector))
 
-def optimizeRidgeRegression(training_matrix, training_y1, validation_features, validation_y):
+def optimizeRidgeRegression(training_matrix, training_y, validation_matrix, validation_y):
     best_lambda = 0.0
     current_lambda = 0.0
     all_lambdas = []
@@ -47,17 +47,38 @@ def optimizeRidgeRegression(training_matrix, training_y1, validation_features, v
 
     while current_lambda <= 10:
         all_lambdas.append(current_lambda)
-        ridge_weights_y1 = trainRidgeRegression(training_matrix, current_lambda, training_y1)
+        ridge_weights_y1 = trainRidgeRegression(training_matrix, current_lambda, training_y)
         
-        mse = calcMeanSqError(ridge_weights_y1, validation_features, validation_y)
+        mse = calcMeanSqError(ridge_weights_y1, validation_matrix, validation_y)
         all_error.append(mse)
         if mse < best_error:
             best_lambda = current_lambda
             best_error = mse
         current_lambda += 0.1
 
-    return best_lambda, all_lambdas, all_error  
-        
+    return best_lambda, all_lambdas, all_error 
+
+def optimizeSKLearnRidge(training_matrix, training_y, validation_matrix, validation_y):
+    best_lambda = 0.0
+    current_lambda = 0.0
+    all_lambdas = []
+    all_error = []
+    best_error = np.inf
+
+    while current_lambda <= 10:
+        all_lambdas.append(current_lambda)
+        ridge_model = Ridge(alpha=current_lambda, fit_intercept=False)
+        ridge_model.fit(training_matrix, training_y)
+
+        preds = ridge_model.predict(validation_matrix)
+        mse = np.mean((preds - validation_y) ** 2)
+        all_error.append(mse)
+        if mse < best_error:
+            best_lambda = current_lambda
+            best_error = mse
+        current_lambda += 0.1
+
+    return best_lambda, all_lambdas, all_error
 # Load Dataset
 energy_efficiency_data = fetch_ucirepo(id=242)
 
@@ -79,8 +100,8 @@ lin_reg_weight_vector_y2 = np.matmul(np.linalg.pinv(np.matmul(training_matrix.T,
 test_features, test_y1, test_y2 = decomposeMatrix(test_set)
 test_matrix = addBias(test_features, TEST_SAMPLES)
 
-print(f'Linear Regression MSE for Y1: {calcMeanSqError(lin_reg_weight_vector_y1, test_matrix, test_y1)}')
-print(f'Linear Regression MSE for Y2: {calcMeanSqError(lin_reg_weight_vector_y2, test_matrix, test_y2)}')
+print(f'My Linear Regression MSE for Y1: {calcMeanSqError(lin_reg_weight_vector_y1, test_matrix, test_y1)}')
+print(f'My Linear Regression MSE for Y2: {calcMeanSqError(lin_reg_weight_vector_y2, test_matrix, test_y2)}')
 
 validation_features, validation_y1, validation_y2 = decomposeMatrix(validation_set)
 validation_matrix = addBias(validation_features, VALIDATION_SAMPLES)
@@ -88,14 +109,14 @@ validation_matrix = addBias(validation_features, VALIDATION_SAMPLES)
 best_lambda_y1, all_lambdas_y1, all_errors_y1 = optimizeRidgeRegression(training_matrix, training_y1, validation_matrix, validation_y1)
 best_lambda_y2, all_lambdas_y2, all_errors_y2 = optimizeRidgeRegression(training_matrix, training_y2, validation_matrix, validation_y2)
 
-print(f'Final lambda chosen Y1: {best_lambda_y1}')
-print(f'Final chosen lambda Y2: {best_lambda_y2}')
+print(f'My Final lambda chosen Y1: {best_lambda_y1}')
+print(f'My Final lambda chosen Y2: {best_lambda_y2}')
 
 final_ridge_weights_y1 = trainRidgeRegression(training_matrix, best_lambda_y1, training_y1)
 final_ridge_weights_y2 = trainRidgeRegression(training_matrix, best_lambda_y2, training_y2)
 
-print(f'Ridge Regression MSE for Y1: {calcMeanSqError(final_ridge_weights_y1, test_matrix, test_y1)}')
-print(f'Ridge Regression MSE for Y1: {calcMeanSqError(final_ridge_weights_y2, test_matrix, test_y2)}')
+print(f'My Ridge Regression MSE for Y1: {calcMeanSqError(final_ridge_weights_y1, test_matrix, test_y1)}')
+print(f'My Ridge Regression MSE for Y1: {calcMeanSqError(final_ridge_weights_y2, test_matrix, test_y2)}')
 
 sk_lin_model_y1 = LinearRegression(fit_intercept=False)
 sk_lin_model_y1.fit(training_matrix, training_y1)
@@ -104,19 +125,33 @@ sk_lin_model_y2 = LinearRegression(fit_intercept=False)
 sk_lin_model_y2.fit(training_matrix, training_y2)
 sk_lin_preds_y2 = sk_lin_model_y2.predict(test_matrix)
 
-lambdas = np.arange(0.0, 10.0 + 0.1, 0.1)
+print(f'SK Learn Linear Regression MSE for Y1: {np.mean((sk_lin_preds_y1 - test_y1) ** 2)}')
+print(f'SK Learn Linear Regression MSE for Y2: {np.mean((sk_lin_preds_y2 - test_y2) ** 2)}')
 
-sk_ridge_model_y1 = RidgeCV(alphas=lambdas, store_cv_values=True, fit_intercept=False)
+best_sk_lambda_y1, all_sk_lambdas_y1, all_sk_errors_y1 = optimizeSKLearnRidge(training_matrix, training_y1, validation_matrix, validation_y1)
+best_sk_lambda_y2, all_sk_lambdas_y2, all_sk_errors_y2 = optimizeSKLearnRidge(training_matrix, training_y2, validation_matrix, validation_y2)
+
+print(f'SK Final lambda chosen Y1: {best_sk_lambda_y1}')
+print(f'SK Final lambda chosen Y2: {best_sk_lambda_y2}')
+
+sk_ridge_model_y1 = Ridge(alpha=best_sk_lambda_y1, fit_intercept=False)
 sk_ridge_model_y1.fit(training_matrix, training_y1)
-sk_ridge_preds_y1 = sk_ridge_model_y1.predict(test_features)
-sk_ridge_model_y2 = RidgeCV(alphas=lambdas, store_cv_values=True, fit_intercept=False)
+sk_ridge_preds_y1 = sk_ridge_model_y1.predict(test_matrix)
+sk_ridge_model_y2 = Ridge(alpha=best_sk_lambda_y2, fit_intercept=False)
 sk_ridge_model_y2.fit(training_matrix, training_y2)
-sk_ridge_preds_y2 = sk_ridge_model_y2.predict(test_features)
+sk_ridge_preds_y2 = sk_ridge_model_y2.predict(test_matrix)
 
 # Graphs and Reporting
-sns.lineplot(x=all_lambdas_y1, y=all_errors_y1, color='blue', label='Y1')
-sns.lineplot(x=all_lambdas_y2, y=all_errors_y2, color='red', label='Y2')
-plt.title('Lambdas vs Error for Y1 and Y2')
+sns.lineplot(x=all_lambdas_y1, y=all_errors_y1, color='blue', label='Y1 Error')
+sns.lineplot(x=all_lambdas_y2, y=all_errors_y2, color='red', label='Y2 Error')
+plt.title('Lambdas vs Error for Y1 and Y2 (My Model)')
+plt.xlabel('Lambda')
+plt.ylabel('Mean Squared Error')
+plt.show()
+
+sns.lineplot(x=all_sk_lambdas_y1, y=all_sk_errors_y1, color='blue', label='Y1 Error')
+sns.lineplot(x=all_sk_lambdas_y2, y=all_sk_errors_y2, color='red', label='Y2 Error')
+plt.title('Lambdas vs Error for Y1 and Y2 (SK Learn Model)')
 plt.xlabel('Lambda')
 plt.ylabel('Mean Squared Error')
 plt.show()
