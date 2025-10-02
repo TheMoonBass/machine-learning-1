@@ -141,6 +141,9 @@ sk_ridge_model_y2 = Ridge(alpha=best_sk_lambda_y2, fit_intercept=False)
 sk_ridge_model_y2.fit(training_matrix, training_y2)
 sk_ridge_preds_y2 = sk_ridge_model_y2.predict(test_matrix)
 
+print(f'SK Learn Ridge Regression MSE for Y1: {np.mean((sk_ridge_preds_y1 - test_y1) ** 2)}')
+print(f'SK Learn Ridge Regression MSE for Y2: {np.mean((sk_ridge_preds_y2 - test_y2) ** 2)}')
+
 # Graphs and Reporting
 sns.lineplot(x=all_lambdas_y1, y=all_errors_y1, color='blue', label='Y1 Error')
 sns.lineplot(x=all_lambdas_y2, y=all_errors_y2, color='red', label='Y2 Error')
